@@ -1,0 +1,12 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\app",
+    "\\app\\Http",
+    "\\app\\Http\\Controllers",
+    "\\database",
+    "\\database\\migrations"
+  ],
+  "SelectedNode": "\\database\\migrations\\2025_12_11_122443_create_reservations_table.php",
+  "PreviewInSolutionExplorer": false
+}
