@@ -24,11 +24,11 @@ class StoreApartmentRequest extends FormRequest
         return [
             'city'=>'required|string|max:100',
             'area'=>'required|string|max:100',
-            'space'=>'required|string|max:10',
+            'space'=>'required|numeric|min:10|max:99999.99',
             'address'=>'required|string|max:100',
             'room'=>'string|max:10',
             'bath_room'=>'string|max:10',
-            'price'=>'required|string|max:10',
+            'price'=>'required|numeric|min:0|max:99999999.99',
             'image'=>'required|image|mimes:png,jpg,jpeg,gif|max:4096',
             'is_available'=>'boolean'
         ];

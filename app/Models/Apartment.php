@@ -38,6 +38,11 @@ class Apartment extends Model
         return $this->belongsToMany(User::class,'favorites','apartment_id','user_id');
     }
     //____________________________________________________________
+    public function favorites()//كل شقة ممكن تكون موجودة باكثر من مفضلة
+    {
+        return $this->hasMany(Favorit::class);
+    }
+    //____________________________________________________________
     public function ratings()
     {
         return $this->hasMany(Rating::class);
@@ -48,8 +53,5 @@ class Apartment extends Model
         return $this->hasMany(Conversation::class);
     }
     //____________________________________________________________
-//     public function averageRating()
-//     {
-//         return $this->ratings()->avg('rating_value');
-//     }
+
 }

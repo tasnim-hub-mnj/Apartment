@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\FilterApartementRequest;
 use App\Http\Requests\StoreApartmentRequest;
 use App\Http\Requests\StoreRatingRequest;
 use App\Http\Requests\UpdateApartmentRequest;
@@ -13,12 +12,13 @@ use App\Services\NotificationService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use PhpParser\Node\Expr\Cast\Double;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+
 
 class ApartmentController extends Controller
 {
-     public function store(StoreApartmentRequest $request)//اضافة
+    public function store(StoreApartmentRequest $request)//اضافة
     {
         $user_id=Auth::user()->id;
         $validatedData=$request->validated();
@@ -27,10 +27,30 @@ class ApartmentController extends Controller
         {
             $path=$request->file('image')->store('apartment','public');
             $validatedData['image']=$path;
-
         }
         $apartment=Apartment::create($validatedData);
 
+        // ارسال اشعار لمالك الشقة
+        try
+        {
+            $owner_id=$user_id;
+            $owner=User::findOrFail($owner_id);
+            $token_fcm=$owner->profile->token_fcm;
+            if (!$token_fcm)
+            {
+                Log::warning("User $owner_id  his apartment stored but has no FCM token.");
+                return response()->json(['message' => 'apartment user stored, but no token found.']);
+            }
+
+            $messaging = app('firebase.messaging');
+
+            $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
+                ->withNotification(\Kreait\Firebase\Messaging\Notification::create("Apartment Stored", "Your apartment was stored."));
+
+            $response = $messaging->send($message);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
         return response()->json([
             'message' => 'Apartment Created successfully',
             'apartment' => $apartment
@@ -40,31 +60,52 @@ class ApartmentController extends Controller
     public function update(UpdateApartmentRequest $request,$apartmentId)//تعديل
     {
         try
-      {
-        $user_id=Auth::user()->id;
-        $apartment=Apartment::findOrFail($apartmentId);
-
-        if($apartment->user_id != $user_id)
         {
-            return response()->json(['message'=>'Unauthorized'],403);
-        }
-        $data = $request->validated();
+            $user_id=Auth::user()->id;
+            $apartment=Apartment::findOrFail($apartmentId);
 
-        if($request->hasFile('image'))
-        {
-            if ($apartment->image)
+            if($apartment->user_id != $user_id)
             {
-                Storage::disk('public')->delete($apartment->image);
+                return response()->json(['message'=>'Unauthorized'],403);
             }
-            $path=$request->file('image')->store('apartment','public');
-            $data['image'] = $path;
-        }
-        $apartment->update($data);
+            $data = $request->validated();
 
-        return response()->json([
-            'message' => 'Apartment Updated successfully',
-            'apartment' => $apartment
-        ], 200);
+            if($request->hasFile('image'))
+            {
+                if ($apartment->image)
+                {
+                    Storage::disk('public')->delete($apartment->image);
+                }
+                $path=$request->file('image')->store('apartment','public');
+                $data['image'] = $path;
+            }
+            $apartment->update($data);
+
+            // ارسال اشعار لمالك الشقة
+            try
+                {
+                    $owner_id=$user_id;
+                    $owner=User::findOrFail($owner_id);
+                    $token_fcm=$owner->profile->token_fcm;
+                    if (!$token_fcm)
+                    {
+                        Log::warning("User $owner_id  his apartment updated but has no FCM token.");
+                        return response()->json(['message' => 'apartment user updated, but no token found.']);
+                    }
+
+                        $messaging = app('firebase.messaging');
+
+                        $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
+                            ->withNotification(\Kreait\Firebase\Messaging\Notification::create("Apartment Updated", "Your apartment was updated."));
+
+                        $response = $messaging->send($message);
+                } catch (\Exception $e) {
+                    return response()->json(['error' => $e->getMessage()], 500);
+                }
+            return response()->json([
+                'message' => 'Apartment Updated successfully',
+                'apartment' => $apartment
+            ], 200);
         }catch(ModelNotFoundException $e){
             return response()->json([
                 'error'=>'the apartment is not found'
@@ -100,15 +141,49 @@ class ApartmentController extends Controller
         foreach ($pendingReservations as $reservation)
         {
             $reservation->update(['approv_status_reserv' => 'rejected']);
+            try//إرسال إشعار لمستخدم الحجز المرفوض
+            {
+                $renter_id=$reservation->user_id;
+                $renter=User::findOrFail($renter_id);
+                $token_fcm=$renter->profile->token_fcm;
+                if (!$token_fcm)
+                {
+                    Log::warning("User $renter_id  his reservation rejected but has no FCM token.");
+                    return response()->json(['message' => 'reservation user rejected, but no token found.']);
+                }
 
-            NotificationService::send(
-                $reservation->user_id,
-                'Reservation rejected',
-                'Your reservation was rejected because the apartment was deleted'
-            );
+                    $messaging = app('firebase.messaging');
+
+                    $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
+                        ->withNotification(\Kreait\Firebase\Messaging\Notification::create("You Reservation rejected", "Your reservation was rejected because the apartment was deleted."));
+
+                    $response = $messaging->send($message);
+            } catch (\Exception $e) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
         }
 
         $apartment->delete();
+        try//إرسال إشعار لمالك الشقة
+            {
+                $owner_id=Auth::id();
+                $owner=User::findOrFail($owner_id);
+                $token_fcm=$owner->profile->token_fcm;
+                if (!$token_fcm)
+                {
+                    Log::warning("User $owner_id  his apartment deleted but has no FCM token.");
+                    return response()->json(['message' => 'apartment user deleted, but no token found.']);
+                }
+
+                    $messaging = app('firebase.messaging');
+
+                    $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
+                        ->withNotification(\Kreait\Firebase\Messaging\Notification::create("Apartment deleted", "Your apartment was deleted."));
+
+                    $response = $messaging->send($message);
+            } catch (\Exception $e) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
 
         return response()->json([
             'message' => 'Apartment deleted successfully'
@@ -119,75 +194,10 @@ class ApartmentController extends Controller
             ],404);
       }
     }
-
-    //____________________________________________________
-    public function getApartmentsCity(string $city)//جلب الشقق حسب المدينة
-    {
-        $apartments=Apartment::where('city',$city)->get();
-        if ($apartments->isEmpty())
-        {
-            return response()->json([
-                'message' => 'No apartments found in the specified city.'
-            ], 404);
-        }
-
-        return response()->json($apartments,200);
-    }
-    //____________________________________________________
-    public function getApartmentsArea(string $area)//جلب الشقق حسب المنطقة
-    {
-        $apartments=Apartment::where('area',$area)->get();
-         if ($apartments->isEmpty())
-        {
-            return response()->json([
-                'message' => 'No apartments found in the specified area.'
-            ], 404);
-        }
-
-        return response()->json($apartments,200);
-    }
-    //____________________________________________________
-    public function getApartmentsSpace(float $space)//جلب الشقق حسب المساحة
-    {
-        $apartments=Apartment::where('space','<=',$space)->get();
-         if ($apartments->isEmpty())
-        {
-            return response()->json([
-                'message' => 'No apartments found with the specified space.'
-            ], 404);
-        }
-
-        return response()->json($apartments,200);
-    }
-    //____________________________________________________
-    public function getApartmentsSize(string $size)//جلب الشقق حسب الحجم
-    {
-        $apartments=Apartment::where('size',$size)->get();
-         if ($apartments->isEmpty())
-        {
-            return response()->json([
-                'message' => 'No apartments found in the specified area.'
-            ], 404);
-        }
-
-        return response()->json($apartments,200);
-    }
-    //____________________________________________________
-    public function getApartmentsPrice(float $price)//جلب الشقق حسب السعر
-    {
-        $apartments=Apartment::where('price','<=',$price)->get();
-         if ($apartments->isEmpty()) {
-            return response()->json([
-                'message' => 'No apartments found within the specified price range.'
-            ], 404);
-        }
-
-        return response()->json($apartments,200);
-    }
     //____________________________________________________
     public function addRating(StoreRatingRequest $request,$apartmentId)//اضافة تقييم
     {
-         try
+        try
         {
             $user_id=Auth::user()->id;
             $validatedData=$request->validated();
@@ -221,32 +231,47 @@ class ApartmentController extends Controller
     //____________________________________________________
     public function showRatingsForApartment($apartmentId)//عرض التقييمات لشقة معينة مع المتوسط
     {
-        $apartment=Apartment::with('ratings.user')->findOrFail($apartmentId);
-        // حساب المتوسط
-        $averageRating=$apartment->ratings()->avg('rating_value');
+        try
+        {
+            $user_id=Auth::user()->id;
+            $apartment=Apartment::with('ratings.user')->findOrFail($apartmentId);
+            $reservations=$apartment->reservations;
+            foreach($reservations as $reservation)
+            {
+                if($reservation->apartment->user_id !== $user_id)
+                {
+                    return response()->json(['message' => 'Unauthorized'], 403);
+                }
+            }
+            // حساب المتوسط
+            $averageRating=$apartment->ratings()->avg('rating_value');
 
-        return response()->json([
-            'apartment'=>$apartment->id,
-            'average_rating'=>round($averageRating, 2),
-            'ratings'=>$apartment->ratings->map(function ($rating) {
-                return [
-                    'user'=>$rating->user->profile->first_name ?? 'nameless',
-                    'stars'=>$rating->rating_value,
-                    'comment'=>$rating->comment,
-                ];
-            }),
-        ]);
+            return response()->json([
+                'apartment'=>$apartment->id,
+                'average_rating'=>round($averageRating, 2),
+                'ratings'=>$apartment->ratings->map(function ($rating) {
+                    return [
+                        'user'=>$rating->user->profile->first_name ?? 'nameless',
+                        'stars'=>$rating->rating_value,
+                        'comment'=>$rating->comment,
+                    ];
+                }),
+            ]);
+        }catch(ModelNotFoundException $e){
+            return response()->json([
+                'error'=>'the apartment is not found'
+            ],404);
+        }
     }
     //____________________________________________________
-    public function getAllApartmentsICAR()//جلب كل الشقق مع المدينة والمنطقة والتقييم و الصورة
+    public function getAllApartmentsICAR()//جلب كل الشقق مع التفاصيل الخارجية
     {
         $apartments=Apartment::all();
         $data=$apartments->map(function($apartment)
         {
             $user = User::findOrFail($apartment->user_id);
             return [
-            //'user_id' => $apartment->user_id,
-            //'user' => $user,
+            'id'            => $apartment->id,
             'first_name_owner' => $user->profile->first_name,
             'last_name_owner' => $user->profile->last_name,
             'image' => $apartment->image ,
@@ -257,27 +282,32 @@ class ApartmentController extends Controller
             'room'=> $apartment->room,
             'bath_room'=>$apartment->bath_room,
             'is_available'=>$apartment->is_available,
+            'is_favorate' => Auth::user()->favoritesApartment->contains($apartment->id) ? 1 : 0,
         ];
         });
-        return response()->json($data,200);
+        return response()->json([
+            'all apartments:' => $data
+        ], 200);
     }
     //____________________________________________________
-    public function getApartmentWithAllDetailed($apartmentId)//عرض شقة معينة مع التقييمات والمتوسط
+    public function getApartmentWithAllDetailed($apartmentId)//عرض شقة معينة مع كل التفاصيل
     {
         try
         {
             $apartment = Apartment::with(['ratings.user'])->findOrFail($apartmentId);
-            $data = [
-                // 'id'            => $apartment->id,
+            $data =
+            [
+                'id'            => $apartment->id,
                 'city'          => $apartment->city,
                 'area'          => $apartment->area,
                 'average_rating'=> round($apartment->ratings()->avg('rating_value'), 2),
                 'space'         => $apartment->space,
-                'size'          => $apartment->size,
+                'address'          => $apartment->address,
                 'room'=> $apartment->room,
                 'bath_room'=>$apartment->bath_room,
                 'price'         => $apartment->price,
                 'is_available'  => $apartment->is_available,
+                'is_favorate' => Auth::user()->favoritesApartment->contains($apartment->id) ? 1 : 0,
                 'ratings'       => $apartment->ratings->map(function ($rating) {
                     return [
                         'user'    => $rating->user->profile->first_name ?? 'nameless',
@@ -287,172 +317,82 @@ class ApartmentController extends Controller
                 }),
             ];
 
-            return response()->json($data, 200);
+            return response()->json([
+            'apartment:'=> $data
+            ],200);
         }catch(ModelNotFoundException $e){
             return response()->json([
                 'error'=>'the apartment is not found'
             ],404);
         }
     }
-    // //____________________________________________________
-    // public function getAllApartmentsWithAllDetailed()//عرض كل الشقق مع التقييمات والمتوسط
-    // {
-    //     $apartments = Apartment::with(['ratings.user'])->get();
+    //____________________________________________________
+    public function getFilterApartments(Request $request)//فلترة الشقق
+    {
+        $query = Apartment::query();
 
-    //     $data = $apartments->map(function ($apartment)
-    //     {
-    //         return [
-    //             // 'id'            => $apartment->id,
-    //             'city'          => $apartment->city,
-    //             'area'          => $apartment->area,
-    //             'average_rating'=> round($apartment->ratings()->avg('rating_value'), 2),
-    //             'space'         => $apartment->space,
-    //             'size'          => $apartment->size,
-    //             'room'=> $apartment->room,
-     //           'bath_room'=>$apartment->bath_room,
-    //             'price'         => $apartment->price,
-    //             'is_available'  => $apartment->is_available,
-    //             'ratings'       => $apartment->ratings->map(function ($rating) {
-    //                 return [
-    //                     'user'    => $rating->user->profile->first_name ?? 'nameless',
-    //                     'stars'   => $rating->rating_value,
-    //                     'comment' => $rating->comment,
-    //                 ];
-    //             }),
-    //         ];
-    //     });
+        // تحقق من المدخلات
+        if ($request->filled('city'))
+        {
+            $query->whereRaw('LOWER(city) = ?', [strtolower($request->input('city'))]);
+        }
 
-    //     return response()->json($data, 200);
-    // }
-    //____________________________________________________
-    // public function getApartmentCAR($apartmentId)//جلب المدينة والمنطقة والتقييم لشقة معينة
-    // {
-    //     $apartment=Apartment::findOrFail($apartmentId);
-    //     return response()->json([
-    //         'city'=>$apartment->city,
-    //         'area'=>$apartment->area,
-    //         'rating'=>$apartment->averageRating()
-    //     ],200);
-    // }
-    //____________________________________________________
-    // public function getAverageRating($apartmentId)//جلب متوسط التقييم لشقة معينة
-    // {
-    //     try
-    //     {
-    //         $apartment=Apartment::findOrFail($apartmentId);
-    //         $averageRating=$apartment->averageRating();
-    //         return response()->json([
-    //             'apartment_id'=>$apartmentId,
-    //             'average_rating'=>round($averageRating,2)
-    //         ],200);
-    //     }catch(ModelNotFoundException $e){
-    //         return response()->json([
-    //             'error'=>'the apartment is not found'
-    //         ],404);
-    //     }
-    // }
-    //____________________________________________________
-    // public function getApartmentsWithRatings()//جلب كل الشقق مع التقييمات
-    // {
-    //     $apartments=Apartment::with('ratings')->get();
-    //     return response()->json($apartments,200);
-    // }
-    //____________________________________________________
-    // public function getRating()// جلب التقييمات مرتبة لمستخدم ما
-    // {
-    //     $rating=Rating::orderByRaw("FIELD(evaluation,'excellent','good','medium','bad')")->get();
-    //     return response()->json($rating,200);
-    // }
-    //____________________________________________________
-     // // تحقق من حالة الحساب
-        // if (Auth::user()->approval_status !== 'approved')
-        // {
-        //     return response()->json([
-        //         'message' => 'your account is awatiting approval of admin'
-        //     ], 403);
-        // }
- // public function isFavorite($apartmentId)//التحقق من المفضلة
-    // {
-    //     try
-    //     {
-    //         Apartment::findOrFail($apartmentId);
-    //         $is_favorite=Auth::user()->favoritesApartment->where('id',$apartmentId)->isNotEmpty();
-    //         return response()->json([
-    //             'apartment_id'=>$apartmentId,
-    //             'is_favorite'=>$is_favorite
-    //         ],200);
-    //     }catch(ModelNotFoundException $e){
-    //         return response()->json([
-    //             'error'=>'the apartment is not found'
-    //         ],404);
-    //     }
-    // }
-    //____________________________________________________
-    // public function show(int $apartmentId)//طباعة صف (شقة)
-    // {
-    //    try
-    //   {
-    //    $user_id=Auth::user()->id;
-    //    $apartment=Apartment::findOrFail($apartmentId);
-    //    if($apartment->user_id != $user_id)
-    //         return response()->json(['message'=>'Unauthorized'],403);
+        if ($request->filled('area'))
+        {
+            $query->whereRaw('LOWER(area) = ?', [strtolower($request->input('area'))]);
+        }
 
-    //    return response()->json($apartment,200);
-    //   }catch(ModelNotFoundException $e){
-    //         return response()->json([
-    //             'error'=>'the apartment is not found'
-    //         ],404);
-    //   }
-    // }
-//____________________________________________________
-    // public function getApartmentUser($apartmentId)//طباعة صاحب الشقة
-    // {
-    //     try
-    //     {
-    //     $apartment = Apartment::findOrFail($apartmentId);
-    //     $user = $apartment->user;
-    //     return response()->json($user, 200);
-    //     }catch(ModelNotFoundException $e){
-    //         return response()->json([
-    //             'error'=>'the apartment is not found'
-    //         ],404);
-    //     }
-    // }
-    //____________________________________________________
-    // public function getApartmentsFilter(FilterApartementRequest $request)//فلترة الشقق
-    // {
-    //     $query = Apartment::query();
+        if ($request->filled('space_min') && $request->filled('space_max'))
+        {
+            $query->whereBetween('space', [$request->input('space_min'), $request->input('space_max')]);
+        }
 
-    //     if ($request->has('city'))
-    //     {
-    //         $query->where('city', $request->city);
-    //     }
-    //     if ($request->has('area'))
-    //     {
-    //         $query->where('area', $request->area);
-    //     }
-    //     if ($request->has('space'))
-    //     {
-    //         $query->where('space', '>=', $request->space);//اكبر من او تساوي المساحة المدخلة
-    //     }
-    //     if ($request->has('size'))
-    //     {
-    //         $query->where('size', $request->size);
-    //     }
-    //     if ($request->has('price'))
-    //     {
-    //         $query->where('price', '<=', $request->price);//اقل من او تساوي السعر المدخل
-    //     }
-    //     $apartments = $query->get();
+        if ($request->filled('price_min') && $request->filled('price_max'))
+        {
+            $query->whereBetween('price', [$request->input('price_min'), $request->input('price_max')]);
+        }
 
-    //     if ($apartments->isEmpty())
-    //     {
-    //         return response()->json([
-    //             'message' => 'No apartments found.'
-    //         ],404);
-    //     }
+        if ($request->filled('room'))
+        {
+            $query->where('room', $request->input('room'));
+        }
 
-    //     return response()->json($apartments->getAllApartmentsCAR(),200);//------------
-    // }
+        if ($request->filled('bath_room'))
+        {
+            $query->where('bath_room', $request->input('bath_room'));
+        }
+
+        $apartments = $query->get();
+
+        if ($apartments->isEmpty())
+        {
+            return response()->json([
+                'message' => 'No apartments found with the specified filters.'
+            ], 404);
+        }
+
+        //تحديد طريقة العرض
+        $result = $apartments->map(function ($apartment)
+        {
+            $user = $apartment->user;
+            return [
+                'id'               => $apartment->id,
+                'first_name_owner' => $user->profile->first_name ?? null,
+                'last_name_owner'  => $user->profile->last_name ?? null,
+                'image'            => $apartment->image,
+                'city'             => $apartment->city,
+                'area'             => $apartment->area,
+                'average_rating'   => round($apartment->ratings()->avg('rating_value'), 2),
+                'price'            => $apartment->price,
+                'room'             => $apartment->room,
+                'bath_room'        => $apartment->bath_room,
+                'is_available'     => $apartment->is_available,
+                'is_favorate' => Auth::user()->favoritesApartment->contains($apartment->id) ? 1 : 0,
+            ];
+        });
+        return response()->json([
+            'apartments'=>$result
+            ],200);
+    }
 
 }

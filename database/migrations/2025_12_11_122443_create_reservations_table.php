@@ -19,8 +19,6 @@ return new class extends Migration
             $table->enum('approv_status_reserv',['pending','approved','rejected'])->default('pending');
             $table->date('start_date');
             $table->date('end_date');
-            $table->enum('pay_method',['card','cash']);
-            $table->string('card_number')->nullable();
             $table->enum('status_pay',['unpaid','paid'])->default('unpaid');
             $table->decimal('required_amount',10,2);
             $table->timestamps();

@@ -16,13 +16,17 @@ class UserController extends Controller
 {
     public function register(RegisterRequest $request)//تسجيل مستخدم
     {
-
-        $user=User::create(//user create
+        $user=User::create(//create user
             [
                 'phone'=>$request->phone,
                 'password'=>Hash::make($request->password),
                 'role'=>$request->role,
             ]);
+        if($request->role=='admin')
+        {
+            $user->update(['approval_status'=>'approved']);
+        }
+
         $data=
             [
                 'user_id'=> $user->id ,
@@ -49,8 +53,8 @@ class UserController extends Controller
         if($test)
         {
             $user->delete();
-           return response()->json([
-            'message'=>'You can not register in this applecation, you are deleted',
+            return response()->json([
+            'message'=>'You can not register in this applecation, you are banned',
             ],404);
         }
 
@@ -67,17 +71,19 @@ class UserController extends Controller
             'phone' =>'required|string|min:10|max:10',
             'password'=>'required|string'
         ]);
+
         if(!Auth::attempt($request->only('phone','password')))
             return response()->json([
             'message'=>'invalid password or phone'
-        ], 401);
+            ], 401);
+
         $user=User::where('phone',$request->phone)->firstOrFail();
         $token=$user->createToken('auth_token')->plainTextToken;
         $user->profile;
         return response()->json([
             'message'=>'User Logged In Successfully',
             'Token'=>$token,
-            'User'=>$user
+            'User-profile'=>$user
         ], 201);
     }
 //__________________________________________________________________________
@@ -90,5 +96,25 @@ class UserController extends Controller
         ],200);
     }
 //__________________________________________________________________________
+    public function updatePassword(Request $request)//تحديث كلمة المرور
+    {
+        $request->validate([
+            'old_password'=>'required|string',
+            'new_password'=>'required|string|min:6|different:old_password'
+        ]);
 
+        $user=Auth::user();
+        if(!Hash::check($request->old_password,$user->password))
+        {
+            return response()->json([
+                'message'=>'The old password is incorrect'
+            ],403);
+        }
+        $user->password=Hash::make($request->new_password);
+        $user->save();
+
+        return response()->json([
+            'message'=>'Password updated successfully'
+        ],200);
+    }
 }

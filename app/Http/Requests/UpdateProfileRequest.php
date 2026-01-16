@@ -27,7 +27,7 @@ class UpdateProfileRequest extends FormRequest
             'last_name'=>'sometimes|string|max:100',
             'personal_photo'=>'sometimes|image|mimes:png,jpg,jpeg,gif|max:4096',
             'birth_date'=>'sometimes|date|date_format:Y-m-d',
-            'identity_photo'=>'sometimes|image|mimes:png,jpg,jpeg,gif|max:4096'
+            // 'identity_photo'=>'sometimes|image|mimes:png,jpg,jpeg,gif|max:4096'
         ];
     }
 }

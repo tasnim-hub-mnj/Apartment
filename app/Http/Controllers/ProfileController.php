@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class ProfileController extends Controller
 {
@@ -31,6 +32,27 @@ class ProfileController extends Controller
                 $data['personal_photo']=$path1;
             }
             $profile->update($data);
+
+            try//إرسال إشعار للمستخدم
+            {
+                $user_id=Auth::user()->id;
+                $user=User::findOrFail($user_id);
+                $token_fcm=$user->profile->token_fcm;
+                if (!$token_fcm)
+                {
+                    Log::warning("User $user_id  updated his profile but has no FCM token.");
+                    return response()->json(['message' => 'user his profile updated, but no token found.']);
+                }
+
+                    $messaging = app('firebase.messaging');
+
+                    $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
+                        ->withNotification(\Kreait\Firebase\Messaging\Notification::create("Updated your profile", "Your profile was updated."));
+
+                    $response = $messaging->send($message);
+            } catch (\Exception $e) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
 
             return response()->json([
                 'message'=>'Profile updated successfully',
@@ -55,36 +77,7 @@ class ProfileController extends Controller
             ]
         ], 200);
     }
-    //     public function UpdateProfile(UpdateProfileRequest $request)
-// {
-//     $profile = Profile::where('user_id', Auth::id())->firstOrFail();
-//     $data = $request->validated();
 
-//     if ($request->hasFile('personal_photo')) {
-//         if ($profile->personal_photo) {
-//             Storage::disk('public')->delete($profile->personal_photo);
-//         }
-
-//         $data['personal_photo'] =
-//             $request->file('personal_photo')->store('profiles/personal', 'public');
-//     }
-
-//     if ($request->hasFile('identity_photo')) {
-//         if ($profile->identity_photo) {
-//             Storage::disk('public')->delete($profile->identity_photo);
-//         }
-
-//         $data['identity_photo'] =
-//             $request->file('identity_photo')->store('profiles/identity', 'public');
-//     }
-
-//     $profile->update($data);
-
-//     return response()->json([
-//         'message' => 'Profile updated successfully',
-//         'profile' => $profile->fresh(),
-//     ], 200);
-// }
 }
 
 

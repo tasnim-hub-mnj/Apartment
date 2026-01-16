@@ -24,8 +24,7 @@ class StoreReservationRequest extends FormRequest
         return [
             'start_date'=>'required|date|date_format:Y-m-d',
             'end_date' => 'required|date|after_or_equal:start_date|date_format:Y-m-d',
-            'pay_method'=>'required|in:card,cash',
-            'card_number' => 'nullable|numeric|required_if:pay_method,card'
+            
         ];
     }
 }

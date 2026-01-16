@@ -12,7 +12,7 @@ class Conversation extends Model
          'owner_id',
           'renter_id'
     ];
-    // protected $table = 'conversations';
+    protected $table = 'conversations';
     //___________________________________________________________
     public function messages()
     {

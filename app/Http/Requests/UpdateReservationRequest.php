@@ -22,17 +22,12 @@ class UpdateReservationRequest extends FormRequest
     public function rules(): array
     {
         return [
-
             'status'=>'sometimes|in:confirmed,cancelled,finished',
             'approv_status_reserv'=>'sometimes|in:pending,approved,rejected',
-            'start_date'=>'required|date|date_format:Y-m-d',
-            'end_date' => 'required|date|after_or_equal:start_date|date_format:Y-m-d',
-            'pay_method'=>'required|in:card,cash',
-            'card_number' => 'nullable|numeric|required_if:pay_method,card',
+            'start_date'=>'sometimes|date|date_format:Y-m-d',
+            'end_date' => 'sometimes|date|after_or_equal:start_date|date_format:Y-m-d',
             // 'status_pay'=>'sometimes|in:unpaid,paid',
             'required_amount'=>'sometimes|numeric|min:0',
-
-
         ];
     }
 }

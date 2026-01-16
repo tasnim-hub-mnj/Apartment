@@ -25,19 +25,20 @@ Route::post('register',[UserController::class,'register']);
 Route::post('login',[UserController::class,'login']);
 Route::post('logout',[UserController::class,'logout'])->middleware('auth:sanctum');
 //******************************************************************************
-Route::get('users/approved',[AdminController::class,'approvedUsers']);
 Route::middleware('auth:sanctum')->group(function(){
 //=============================================================================///////////////////
 //***********User Profile Management*************
 Route::post('profile',[ProfileController::class,'UpdateProfile']);
 Route::get('profile',[ProfileController::class,'getUserProfile']);
+Route::post('password',[UserController::class,'updatePassword']);
+
 
 //=============================================================================///////////////////
 Route::middleware('CheckRenter')->group(function()
 {
 //**********Reservations CRUD*************
 Route::post('reservation/{apartmentId}',[ReservationController::class,'store'])->middleware('CheckApprovedUser');
-Route::put('reservation/{reservationId}',[ReservationController::class,'update']);
+Route::post('reservationUpdate/{reservationId}',[ReservationController::class,'update']);
 Route::put('reservation/cancellation/{reservationId}',[ReservationController::class,'cancellation'])->middleware('CheckApprovedUser');
 
 //**********Get Reservations*************
@@ -48,20 +49,15 @@ Route::get('reservations/finished',[ReservationController::class,'getFinishedRes
 //************Favorite****************
 Route::post('favorite/{apartmentId}',[FavoriteController::class,'addToFavorites'])->middleware('CheckApprovedUser');
 Route::delete('favorite/{apartmentId}',[FavoriteController::class,'removeFromFavorites']);
-// Route::get('favoritesApartments',[FavoriteController::class,'getFavoritesApartments']);
 // Route::get('countFavorites',[FavoriteController::class,'countFavorites']);
 Route::get('favorite/AllICAR',[FavoriteController::class,'getAllFavoritesICAR']);
 Route::get('favorite/AllDetailed/{apartmentId}',[FavoriteController::class,'getApartmentWithAllDetailed']);
 //*********get all apartment************
 Route::get('apartmentAll',[ApartmentController::class,'getAllApartmentsICAR']);
-
+Route::get('apartment/AllDetailed/{apartmentId}',[ApartmentController::class,'getApartmentWithAllDetailed']);
 //**********Filter Apartments***********
-Route::get('city/{city}',[ApartmentController::class,'getApartmentsCity']);
-Route::get('area/{area}',[ApartmentController::class,'getApartmentsArea']);
-Route::get('space/{space}',[ApartmentController::class,'getApartmentsSpace']);
-Route::get('size/{size}',[ApartmentController::class,'getApartmentsSize']);
-Route::get('price/{price}',[ApartmentController::class,'getApartmentsPrice']);
-
+Route::post('FilterApartment',[ApartmentController::class,'getFilterApartments']);
+//**********Ratings for Apartments***********
 Route::post('Rating/{apartmentId}',[ApartmentController::class,'addRating']);
 
 });
@@ -81,7 +77,7 @@ Route::put('rejected/reservation/{reservationId}',[OwnerController::class,'rejec
 //***********Update Payment Status*************
 Route::put('updateStatusPay/reservation/{reservationId}',[OwnerController::class,'updateStatus_pay']);
 
-//***********Get my Reservation****************
+//***********Get Reservation for my apartments****************
 Route::get('pending/reservation',[OwnerController::class,'pendingReservation']);
 Route::get('approved/reservation',[OwnerController::class,'approvedReservation']);
 
@@ -99,9 +95,8 @@ Route::middleware('CheckAdmin')->group(function()
 
 //***********Admin Dashboard & Users Management*************
 Route::get('dashboard',[AdminController::class,'dashboard']);
+Route::get('users/approved',[AdminController::class,'approvedUsers']);
 Route::get('users/pending',[AdminController::class,'pendingUsers']);
-
-//Route::get('/users/rejected',[AdminController::class,'rejectedUsers']);
 
 //**********Change User Approve Status*************
 Route::put('users/{id}/approve',[AdminController::class,'approveUser']);

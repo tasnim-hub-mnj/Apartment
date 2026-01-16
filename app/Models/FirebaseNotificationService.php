@@ -7,7 +7,6 @@ use Kreait\Firebase\Messaging\Notification;
 
 class FirebaseNotificationService
 {
-
     public function sendNotification($deviceToken, $title, $body)
     {
         $messaging = app('firebase.messaging');
@@ -15,10 +14,12 @@ class FirebaseNotificationService
 
         $message = CloudMessage::withTarget('token', $deviceToken)
             ->withNotification($notification);
-        try {
+        try
+        {
             $messaging->send($message);
             return "success sent";
-        } catch (\Exception $e) {
+        } catch (\Exception $e)
+        {
             return "fail sent" . $e->getMessage();
         }
     }

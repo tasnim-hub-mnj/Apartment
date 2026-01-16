@@ -16,12 +16,12 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->string('city');
             $table->string('area');
-            $table->string('space');
+            $table->decimal('space', 10, 2);
             $table->string('address');
             $table->string('image')->nullable();
             $table->string('room');
             $table->string('bath_room');
-            $table->string('price');
+            $table->decimal('price', 10, 2);
             $table->boolean('is_available')->default(true);
             $table->timestamps();
         });

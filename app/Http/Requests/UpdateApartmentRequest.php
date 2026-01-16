@@ -23,14 +23,14 @@ class UpdateApartmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'city'=>'string|max:100',
-            'area'=>'string|max:100',
-            'space'=>'string|max:10',
-            'address'=>'string|max:100',
-            'room'=>'string|max:10',
-            'bath_room'=>'string|max:10',
-            'price'=>'string|max:10',
-            'image'=>'image|mimes:png,jpg,jpeg,gif|max:4096',
+            'city'=>'sometimes|string|max:100',
+            'area'=>'sometimes|string|max:100',
+            'space'=>'sometimes|numeric|min:10|max:99999.99',
+            'address'=>'sometimes|string|max:100',
+            'room'=>'sometimes|string|max:10',
+            'bath_room'=>'sometimes|string|max:10',
+            'price'=>'sometimes|numeric|min:0|max:99999999.99',
+            'image'=>'sometimes|image|mimes:png,jpg,jpeg,gif|max:4096',
             'is_available'=>'boolean'
         ];
     }

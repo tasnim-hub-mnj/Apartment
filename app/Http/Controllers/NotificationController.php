@@ -38,8 +38,6 @@ class NotificationController extends Controller
  function sendOrderNotification( $token, FirebaseNotificationService $fcmService)
 {
 
-   // $userToken = $request->user()->fcm_token;
-
     $userToken=$token;
 
     $fcmService->sendNotification(

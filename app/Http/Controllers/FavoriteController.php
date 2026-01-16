@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Apartment;
+use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class FavoriteController extends Controller
 {
@@ -15,6 +17,28 @@ class FavoriteController extends Controller
         {
             Apartment::findOrFail($apartmentId);
             Auth::user()->favoritesApartment()->syncWithoutDetaching($apartmentId);
+
+            try//إرسال إشعار للمستأجر
+            {
+                $renter_id=Auth::id();
+                $renter=User::findOrFail($renter_id);
+                $token_fcm=$renter->profile->token_fcm;
+                if (!$token_fcm)
+                {
+                    Log::warning("User $renter_id  Added a apartment for Favorites but has no FCM token.");
+                    return response()->json(['message' => 'user Added a apartment for Favorites, but no token found.']);
+                }
+
+                    $messaging = app('firebase.messaging');
+
+                    $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
+                        ->withNotification(\Kreait\Firebase\Messaging\Notification::create("Added a apartment for Favorites", "Your apartment was added to favorites."));
+
+                    $response = $messaging->send($message);
+            } catch (\Exception $e) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
+
             return response()->json([
                 'message'=>'Added To Favorite List'
             ],201);
@@ -29,8 +53,30 @@ class FavoriteController extends Controller
     {
         try
         {
-            Apartment::findOrFail($apartmentId);
+            $apartment=Apartment::findOrFail($apartmentId);
             Auth::user()->favoritesApartment()->detach($apartmentId);
+
+            try//إرسال إشعار للمستأجر
+            {
+                $renter_id=Auth::id();
+                $renter=User::findOrFail($renter_id);
+                $token_fcm=$renter->profile->token_fcm;
+                if (!$token_fcm)
+                {
+                    Log::warning("User $renter_id  Deleted a apartment for Favorites but has no FCM token.");
+                    return response()->json(['message' => 'user Deleted a apartment for Favorites, but no token found.']);
+                }
+
+                    $messaging = app('firebase.messaging');
+
+                    $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
+                        ->withNotification(\Kreait\Firebase\Messaging\Notification::create("Deleted a apartment for Favorites", "Your apartment was deleted from favorites."));
+
+                    $response = $messaging->send($message);
+            } catch (\Exception $e) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
+
             return response()->json([
                 'message'=>'Removed From Favorite List'
             ],200);
@@ -39,15 +85,6 @@ class FavoriteController extends Controller
                 'error'=>'the apartment is not found'
             ],404);
         }
-    }
-    //____________________________________________________
-    public function getFavoritesApartments()//جلب المفضلة
-    {
-        $apartments_favorite=Auth::user()->favoritesApartment;
-        return response()->json([
-            'message'=>'Favorite List :',
-            $apartments_favorite
-        ],200);
     }
     //____________________________________________________
     public function countFavorites()//عدد المفضلة
@@ -59,45 +96,51 @@ class FavoriteController extends Controller
         ],200);
     }
     //____________________________________________________
-    public function getAllFavoritesICAR()//جلب المفضلة مع المدينةوالمنطقةوالتقييم المتوسط و الصورة
+    public function getAllFavoritesICAR()//جلب كل المفضلة مع التفاصيل الخارجية
     {
         $favorites=Auth::user()->favoritesApartment()->get();
         $favorites_rating=$favorites->map(function($apartment)
         {
-            $apartment->makeHidden('pivot');
-
-            $apartment_data=$apartment->toArray();
-            $apartment_data['image']=$apartment->image;
-            $apartment_data['city']  = $apartment->city;
-            $apartment_data['area']  = $apartment->area;
-            $apartment_data['average_rating']=round($apartment->ratings()->avg('rating_value'), 2);
-            $apartment_data['price']=$apartment->price;
-            $apartment_data['room']=$apartment->room;
-            $apartment_data['bath_room']=$apartment->bath_room;
-            return $apartment_data;
+           $user = $apartment->user;
+            return [
+                'id'               => $apartment->id,
+                'first_name_owner' => $user->profile->first_name ?? null,
+                'last_name_owner'  => $user->profile->last_name ?? null,
+                'image'            => $apartment->image,
+                'city'             => $apartment->city,
+                'area'             => $apartment->area,
+                'average_rating'   => round($apartment->ratings()->avg('rating_value'), 2),
+                'price'            => $apartment->price,
+                'room'             => $apartment->room,
+                'bath_room'        => $apartment->bath_room,
+                'is_available'     => $apartment->is_available,
+                'is_favorate' => Auth::user()->favoritesApartment->contains($apartment->id) ? 1 : 0,
+            ];
         });
         return response()->json([
-            'message'=>'Favorite Apartments with Image, City, Area, and Average Rating :',
-            $favorites_rating
+            'Favorite Apartments'=> $favorites_rating
         ],200);
     }
     //____________________________________________________
-    public function getApartmentWithAllDetailed($apartmentId)//عرض شقة معينة مع التقييمات والمتوسط
+    public function getApartmentWithAllDetailed($apartmentId)//عرض شقة معينة مع التفاصيل الخارجية
     {
         try
         {
             $apartment = Apartment::with(['ratings.user'])->findOrFail($apartmentId);
-            $data = [
-                // 'id'            => $apartment->id,
-                'city'          => $apartment->city,
-                'area'          => $apartment->area,
-                'average_rating'=> round($apartment->ratings()->avg('rating_value'), 2),
-                'space'         => $apartment->space,
-                'size'          => $apartment->size,
-                'room'=> $apartment->room,
-                'bath_room'=>$apartment->bath_room,
-                'price'         => $apartment->price,
-                'is_available'  => $apartment->is_available,
+            $data =
+            [
+                'id'               => $apartment->id,
+                'image'            => $apartment->image,
+                'city'             => $apartment->city,
+                'area'             => $apartment->area,
+                'space'            => $apartment->space,
+                'address'          => $apartment->address,
+                'average_rating'   => round($apartment->ratings()->avg('rating_value'), 2),
+                'price'            => $apartment->price,
+                'room'             => $apartment->room,
+                'bath_room'        => $apartment->bath_room,
+                'is_available'     => $apartment->is_available,
+                'is_favorate' => Auth::user()->favoritesApartment->contains($apartment->id) ? 1 : 0,
                 'ratings'       => $apartment->ratings->map(function ($rating) {
                     return [
                         'user'    => $rating->user->profile->first_name ?? 'nameless',
@@ -107,37 +150,14 @@ class FavoriteController extends Controller
                 }),
             ];
 
-            return response()->json($data, 200);
+            return response()->json([
+            'apartment:'=> $data
+            ],200);
         }catch(ModelNotFoundException $e){
             return response()->json([
                 'error'=>'the apartment is not found'
             ],404);
         }
     }
-    //____________________________________________________
-    // public function getAllFavoriteWithAllDetailed()//جلب المفضلة مع جميع التفاصيل
-    // {
-    //     $favorites=Auth::user()->favoritesApartment()->with('city','area')->get();
-    //     $favorites_detailed=$favorites->map(function($apartment)
-    //     {
-    //         $apartment_data=$apartment->toArray();
-    //         $apartment_data['average_rating']=$apartment->ratings()->avg('rating_value');
-    //         return [
-    //             // 'id'=>$apartment_data['id'],
-    //             'city'=>$apartment_data['city']['name'],
-    //             'area'=>$apartment_data['area']['name'],
-    //             'average_rating'=>$apartment_data['average_rating'],
-    //             'space'=>$apartment_data['space'],
-    //             'size'=>$apartment_data['size'],
-    //             'room'=>$apartment_data['room'],
-     //       'bath_room'=>$apartment_data['bath_room'],
-    //             'price'=>$apartment_data['price'],
-    //             'is_available'=>$apartment_data['is_available'],
-    //         ];
-    //     });
-    //     return response()->json([
-    //         'message'=>'Detailed Favorite Apartments :',
-    //         $favorites_detailed
-    //     ],200);
-    // }
+
 }

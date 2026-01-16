@@ -19,8 +19,6 @@ class Reservation extends Model
         'status',
         'start_date',
         'end_date',
-        'pay_method',
-        'card_number',
         'status_pay',
         'required_amount',
     ];
@@ -54,7 +52,6 @@ class Reservation extends Model
         $end = Carbon::parse($end)->toDateString();
 
         return self::where('apartment_id', $apartmentId)
-            // ->where('approv_status_reserv', 'approved')
             ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))// استبعاد الحجز الحالي
             ->when($userId, fn($q) => $q->where('user_id', $userId))// منع نفس المستخدم
             ->where('start_date', '<=', $end)
