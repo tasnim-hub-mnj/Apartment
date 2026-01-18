@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+
 
 class UserController extends Controller
 {
@@ -99,22 +101,71 @@ class UserController extends Controller
     public function updatePassword(Request $request)//تحديث كلمة المرور
     {
         $request->validate([
-            'old_password'=>'required|string',
-            'new_password'=>'required|string|min:6|different:old_password'
+            'password'=>'required|string|confirmed',
+            'phone'=>'required|string|max:10|min:10',
         ]);
 
-        $user=Auth::user();
-        if(!Hash::check($request->old_password,$user->password))
+        $phone=$request->phone;
+        try
+        {
+            $user=User::where('phone', $phone)->firstOrFail();
+        }
+        catch (ModelNotFoundException $e)
         {
             return response()->json([
-                'message'=>'The old password is incorrect'
+            'message'=>'this phone is not founded. '
             ],403);
         }
-        $user->password=Hash::make($request->new_password);
+
+        $user->password=Hash::make($request->password);
         $user->save();
 
         return response()->json([
             'message'=>'Password updated successfully'
         ],200);
+    }
+    //___________________________________________________________
+    public function isPhoneFound(Request $request)//بحث عن رقم هاتف
+    {
+        $request->validate([
+        'phone'=>'required|string|max:10|min:10',
+        ]);
+        $phone=$request->phone;
+        try
+        {
+            $user=User::where('phone', $phone)->firstOrFail();
+        }
+        catch (ModelNotFoundException $e)
+        {
+            return response()->json([
+            'message'=>'this phone is not founded. '
+            ],403);
+        }
+
+        if($user)
+        {
+            $user_id=$user->id;
+            // //ارسال اشعار للمستخدم
+            // $token_fcm=$user->profile->token_fcm;
+            // if (!$token_fcm)
+            // {
+            //     Log::warning("User $user_id approved but has no FCM token.");//
+            //     return response()->json(['message' => 'User approved, but no token found.']);
+            // }
+
+            // $messaging = app('firebase.messaging');
+            // $name=$user->profile->first_name;
+            // $verfiycode =rand(100000,999999);
+
+            // $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
+            //     ->withNotification(\Kreait\Firebase\Messaging\Notification::create("Success Apply\nWelcome $name", "$verfiycode"));
+
+            // $response = $messaging->send($message);
+
+            return response()->json([
+            'message'=>'this phone is founded. '
+            ],200);
+        }
+
     }
 }

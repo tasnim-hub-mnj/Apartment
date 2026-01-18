@@ -30,27 +30,27 @@ class ApartmentController extends Controller
         }
         $apartment=Apartment::create($validatedData);
 
-        // ارسال اشعار لمالك الشقة
-        try
-        {
-            $owner_id=$user_id;
-            $owner=User::findOrFail($owner_id);
-            $token_fcm=$owner->profile->token_fcm;
-            if (!$token_fcm)
-            {
-                Log::warning("User $owner_id  his apartment stored but has no FCM token.");
-                return response()->json(['message' => 'apartment user stored, but no token found.']);
-            }
+        // // ارسال اشعار لمالك الشقة
+        // try
+        // {
+        //     $owner_id=$user_id;
+        //     $owner=User::findOrFail($owner_id);
+        //     $token_fcm=$owner->profile->token_fcm;
+        //     if (!$token_fcm)
+        //     {
+        //         Log::warning("User $owner_id  his apartment stored but has no FCM token.");
+        //         return response()->json(['message' => 'apartment user stored, but no token found.']);
+        //     }
 
-            $messaging = app('firebase.messaging');
+        //     $messaging = app('firebase.messaging');
 
-            $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
-                ->withNotification(\Kreait\Firebase\Messaging\Notification::create("Apartment Stored", "Your apartment was stored."));
+        //     $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
+        //         ->withNotification(\Kreait\Firebase\Messaging\Notification::create("Apartment Stored", "Your apartment was stored."));
 
-            $response = $messaging->send($message);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
+        //     $response = $messaging->send($message);
+        // } catch (\Exception $e) {
+        //     return response()->json(['error' => $e->getMessage()], 500);
+        // }
         return response()->json([
             'message' => 'Apartment Created successfully',
             'apartment' => $apartment
@@ -81,27 +81,27 @@ class ApartmentController extends Controller
             }
             $apartment->update($data);
 
-            // ارسال اشعار لمالك الشقة
-            try
-                {
-                    $owner_id=$user_id;
-                    $owner=User::findOrFail($owner_id);
-                    $token_fcm=$owner->profile->token_fcm;
-                    if (!$token_fcm)
-                    {
-                        Log::warning("User $owner_id  his apartment updated but has no FCM token.");
-                        return response()->json(['message' => 'apartment user updated, but no token found.']);
-                    }
+            // // ارسال اشعار لمالك الشقة
+            // try
+            //     {
+            //         $owner_id=$user_id;
+            //         $owner=User::findOrFail($owner_id);
+            //         $token_fcm=$owner->profile->token_fcm;
+            //         if (!$token_fcm)
+            //         {
+            //             Log::warning("User $owner_id  his apartment updated but has no FCM token.");
+            //             return response()->json(['message' => 'apartment user updated, but no token found.']);
+            //         }
 
-                        $messaging = app('firebase.messaging');
+            //             $messaging = app('firebase.messaging');
 
-                        $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
-                            ->withNotification(\Kreait\Firebase\Messaging\Notification::create("Apartment Updated", "Your apartment was updated."));
+            //             $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
+            //                 ->withNotification(\Kreait\Firebase\Messaging\Notification::create("Apartment Updated", "Your apartment was updated."));
 
-                        $response = $messaging->send($message);
-                } catch (\Exception $e) {
-                    return response()->json(['error' => $e->getMessage()], 500);
-                }
+            //             $response = $messaging->send($message);
+            //     } catch (\Exception $e) {
+            //         return response()->json(['error' => $e->getMessage()], 500);
+            //     }
             return response()->json([
                 'message' => 'Apartment Updated successfully',
                 'apartment' => $apartment
@@ -141,49 +141,49 @@ class ApartmentController extends Controller
         foreach ($pendingReservations as $reservation)
         {
             $reservation->update(['approv_status_reserv' => 'rejected']);
-            try//إرسال إشعار لمستخدم الحجز المرفوض
-            {
-                $renter_id=$reservation->user_id;
-                $renter=User::findOrFail($renter_id);
-                $token_fcm=$renter->profile->token_fcm;
-                if (!$token_fcm)
-                {
-                    Log::warning("User $renter_id  his reservation rejected but has no FCM token.");
-                    return response()->json(['message' => 'reservation user rejected, but no token found.']);
-                }
+            // try//إرسال إشعار لمستخدم الحجز المرفوض
+            // {
+            //     $renter_id=$reservation->user_id;
+            //     $renter=User::findOrFail($renter_id);
+            //     $token_fcm=$renter->profile->token_fcm;
+            //     if (!$token_fcm)
+            //     {
+            //         Log::warning("User $renter_id  his reservation rejected but has no FCM token.");
+            //         return response()->json(['message' => 'reservation user rejected, but no token found.']);
+            //     }
 
-                    $messaging = app('firebase.messaging');
+            //         $messaging = app('firebase.messaging');
 
-                    $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
-                        ->withNotification(\Kreait\Firebase\Messaging\Notification::create("You Reservation rejected", "Your reservation was rejected because the apartment was deleted."));
+            //         $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
+            //             ->withNotification(\Kreait\Firebase\Messaging\Notification::create("You Reservation rejected", "Your reservation was rejected because the apartment was deleted."));
 
-                    $response = $messaging->send($message);
-            } catch (\Exception $e) {
-                return response()->json(['error' => $e->getMessage()], 500);
-            }
+            //         $response = $messaging->send($message);
+            // } catch (\Exception $e) {
+            //     return response()->json(['error' => $e->getMessage()], 500);
+            // }
         }
 
         $apartment->delete();
-        try//إرسال إشعار لمالك الشقة
-            {
-                $owner_id=Auth::id();
-                $owner=User::findOrFail($owner_id);
-                $token_fcm=$owner->profile->token_fcm;
-                if (!$token_fcm)
-                {
-                    Log::warning("User $owner_id  his apartment deleted but has no FCM token.");
-                    return response()->json(['message' => 'apartment user deleted, but no token found.']);
-                }
+        // try//إرسال إشعار لمالك الشقة
+        //     {
+        //         $owner_id=Auth::id();
+        //         $owner=User::findOrFail($owner_id);
+        //         $token_fcm=$owner->profile->token_fcm;
+        //         if (!$token_fcm)
+        //         {
+        //             Log::warning("User $owner_id  his apartment deleted but has no FCM token.");
+        //             return response()->json(['message' => 'apartment user deleted, but no token found.']);
+        //         }
 
-                    $messaging = app('firebase.messaging');
+        //             $messaging = app('firebase.messaging');
 
-                    $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
-                        ->withNotification(\Kreait\Firebase\Messaging\Notification::create("Apartment deleted", "Your apartment was deleted."));
+        //             $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
+        //                 ->withNotification(\Kreait\Firebase\Messaging\Notification::create("Apartment deleted", "Your apartment was deleted."));
 
-                    $response = $messaging->send($message);
-            } catch (\Exception $e) {
-                return response()->json(['error' => $e->getMessage()], 500);
-            }
+        //             $response = $messaging->send($message);
+        //     } catch (\Exception $e) {
+        //         return response()->json(['error' => $e->getMessage()], 500);
+        //     }
 
         return response()->json([
             'message' => 'Apartment deleted successfully'

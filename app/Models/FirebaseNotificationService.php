@@ -9,11 +9,11 @@ class FirebaseNotificationService
 {
     public function sendNotification($deviceToken, $title, $body)
     {
-        $messaging = app('firebase.messaging');
-        $notification = Notification::create($title, $body);
+        $messaging = app('firebase.messaging');//جلب خدمة المراسلة من الفايربيز
+        $notification = Notification::create($title, $body);//انشاء اشعار جديد
 
         $message = CloudMessage::withTarget('token', $deviceToken)
-            ->withNotification($notification);
+            ->withNotification($notification);//الرسالة نفسها
         try
         {
             $messaging->send($message);

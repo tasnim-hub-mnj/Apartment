@@ -46,14 +46,36 @@ class Reservation extends Model
     //     return $value ? Crypt::decryptString($value) : null;
     // }
     //____________________________________________________________
-    public static function hasConflict($apartmentId, $start, $end, $excludeId=null, $userId=null)
+    public static function hasConflictWithApproved(
+        $apartmentId,
+        $start,
+        $end,
+        $excludeId=null,
+        )
     {
         $start = Carbon::parse($start)->toDateString();
         $end = Carbon::parse($end)->toDateString();
 
         return self::where('apartment_id', $apartmentId)
             ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))// استبعاد الحجز الحالي
-            ->when($userId, fn($q) => $q->where('user_id', $userId))// منع نفس المستخدم
+            ->where('approv_status_reserv', 'approved')//*
+            ->where('start_date', '<=', $end)
+            ->where('end_date', '>=', $start)
+            ->exists();
+    }
+    //____________________________
+    public static function hasConflict(
+        $apartmentId,
+        $start,
+        $end,
+        $excludeId=null,
+        )
+    {
+        $start = Carbon::parse($start)->toDateString();
+        $end = Carbon::parse($end)->toDateString();
+
+        return self::where('apartment_id', $apartmentId)
+            ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))// استبعاد الحجز الحالي
             ->where('start_date', '<=', $end)
             ->where('end_date', '>=', $start)
             ->exists();

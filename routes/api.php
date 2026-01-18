@@ -24,13 +24,17 @@ Route::get('test',function(){
 Route::post('register',[UserController::class,'register']);
 Route::post('login',[UserController::class,'login']);
 Route::post('logout',[UserController::class,'logout'])->middleware('auth:sanctum');
+Route::post('phone',[UserController::class,'isPhoneFound']);
+Route::post('password',[UserController::class,'updatePassword']);
+Route::put('autoFinishReservations',[ReservationController::class,'autoFinishReservations']);
+
+
 //******************************************************************************
 Route::middleware('auth:sanctum')->group(function(){
 //=============================================================================///////////////////
 //***********User Profile Management*************
 Route::post('profile',[ProfileController::class,'UpdateProfile']);
 Route::get('profile',[ProfileController::class,'getUserProfile']);
-Route::post('password',[UserController::class,'updatePassword']);
 
 
 //=============================================================================///////////////////
@@ -117,11 +121,11 @@ Route::get('conversations/{conversationId}/messages',[MessageController::class,'
 // Route::get('message/{messageId}',[MessageController::class,'getMessage']);
 // Route::delete('message/{messageId}',[MessageController::class,'destroy']);
 //=============================================================================///////////////////
-Route::put('autoFinishReservations',[ReservationController::class,'autoFinishReservations']);
 //=============================================================================///////////////////
 //***********Notifications*************
 Route::get('notifications',[NotificationController::class,'getMynotifications']);
 Route::delete('notification/{notificationId}',[NotificationController::class,'destroy']);
+Route::post('notification',[NotificationController::class,'store']);
 
 
 });

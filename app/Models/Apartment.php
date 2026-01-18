@@ -28,7 +28,7 @@ class Apartment extends Model
         return $this->hasMany(Reservation::class);
     }
     //____________________________________________________________
-     public function user()// كل شقة ينتمي ليوزر
+    public function user()// كل شقة ينتمي ليوزر
     {
         return $this->belongsTo(User::class);
     }

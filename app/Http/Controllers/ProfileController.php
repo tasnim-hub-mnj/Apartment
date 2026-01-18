@@ -33,26 +33,26 @@ class ProfileController extends Controller
             }
             $profile->update($data);
 
-            try//إرسال إشعار للمستخدم
-            {
-                $user_id=Auth::user()->id;
-                $user=User::findOrFail($user_id);
-                $token_fcm=$user->profile->token_fcm;
-                if (!$token_fcm)
-                {
-                    Log::warning("User $user_id  updated his profile but has no FCM token.");
-                    return response()->json(['message' => 'user his profile updated, but no token found.']);
-                }
+            // try//إرسال إشعار للمستخدم
+            // {
+            //     $user_id=Auth::user()->id;
+            //     $user=User::findOrFail($user_id);
+            //     $token_fcm=$user->profile->token_fcm;
+            //     if (!$token_fcm)
+            //     {
+            //         Log::warning("User $user_id  updated his profile but has no FCM token.");
+            //         return response()->json(['message' => 'user his profile updated, but no token found.']);
+            //     }
 
-                    $messaging = app('firebase.messaging');
+            //         $messaging = app('firebase.messaging');
 
-                    $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
-                        ->withNotification(\Kreait\Firebase\Messaging\Notification::create("Updated your profile", "Your profile was updated."));
+            //         $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
+            //             ->withNotification(\Kreait\Firebase\Messaging\Notification::create("Updated your profile", "Your profile was updated."));
 
-                    $response = $messaging->send($message);
-            } catch (\Exception $e) {
-                return response()->json(['error' => $e->getMessage()], 500);
-            }
+            //         $response = $messaging->send($message);
+            // } catch (\Exception $e) {
+            //     return response()->json(['error' => $e->getMessage()], 500);
+            // }
 
             return response()->json([
                 'message'=>'Profile updated successfully',

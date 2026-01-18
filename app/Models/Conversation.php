@@ -9,8 +9,8 @@ class Conversation extends Model
     protected $fillable =
     [
         'apartment_id',
-         'owner_id',
-          'renter_id'
+        'owner_id',
+        'renter_id'
     ];
     protected $table = 'conversations';
     //___________________________________________________________

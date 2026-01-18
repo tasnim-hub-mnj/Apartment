@@ -9,8 +9,8 @@ class Message extends Model
     protected $fillable =
     [
         'conversation_id',
-         'sender_id',
-          'content'
+        'sender_id',
+        'content'
     ];
     // protected $table = 'messages';
 //___________________________________________________________

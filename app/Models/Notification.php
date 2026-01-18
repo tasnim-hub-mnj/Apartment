@@ -10,7 +10,7 @@ class Notification extends Model
     [
         'user_id',
         'title',
-        'message'
+        'body'
     ];
     protected $table = 'notifications';
     //___________________________________________________________
