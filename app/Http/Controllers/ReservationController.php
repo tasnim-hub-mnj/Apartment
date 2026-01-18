@@ -36,26 +36,26 @@ class ReservationController extends Controller
                     'detail'  => 'Or you already have a reservation for this apartment in this period'//الشقة محجوزة بالفعل في هذه الفترة
                 ], 409);
 
-                    // try//إرسال إشعار للمستأجر
-                    // {
-                    //     $renter_id=Auth::id();
-                    //     $renter=User::findOrFail($renter_id);
-                    //     $token_fcm=$renter->profile->token_fcm;
-                    //     if (!$token_fcm)
-                    //     {
-                    //         Log::warning("User $renter_id  his reservation Conflict but has no FCM token.");
-                    //         return response()->json(['message' => 'reservation user Conflict, but no token found.']);
-                    //     }
+                    try//إرسال إشعار للمستأجر
+                    {
+                        $renter_id=Auth::id();
+                        $renter=User::findOrFail($renter_id);
+                        $token_fcm=$renter->profile->token_fcm;
+                        if (!$token_fcm)
+                        {
+                            Log::warning("User $renter_id  his reservation Conflict but has no FCM token.");
+                            return response()->json(['message' => 'reservation user Conflict, but no token found.']);
+                        }
 
-                    //         $messaging = app('firebase.messaging');
+                            $messaging = app('firebase.messaging');
 
-                    //         $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
-                    //             ->withNotification(\Kreait\Firebase\Messaging\Notification::create("You Reservation Conflict", "Your reservation was Conflict ."));
+                            $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
+                                ->withNotification(\Kreait\Firebase\Messaging\Notification::create("You Reservation Conflict", "Your reservation was Conflict ."));
 
-                    //         $response = $messaging->send($message);
-                    // } catch (\Exception $e) {
-                    //     return response()->json(['error' => $e->getMessage()], 500);
-                    // }
+                            $response = $messaging->send($message);
+                    } catch (\Exception $e) {
+                        return response()->json(['error' => $e->getMessage()], 500);
+                    }
             }
 
             $days = Carbon::parse($request->start_date)
@@ -78,47 +78,47 @@ class ReservationController extends Controller
             return response()->json(['message' => 'Apartment not found'], 404);
         }
 
-        // try//إرسال إشعار لمالك الشقة
-        //     {
-        //         $owner_id=$apartment->user_id;
-        //         $owner=User::findOrFail($owner_id);
-        //         $token_fcm=$owner->profile->token_fcm;
-        //         if (!$token_fcm)
-        //         {
-        //             Log::warning("User $owner_id  his apartment requested for reservations but has no FCM token.");
-        //             return response()->json(['message' => 'apartment user requested for reservations, but no token found.']);
-        //         }
+        try//إرسال إشعار لمالك الشقة
+            {
+                $owner_id=$apartment->user_id;
+                $owner=User::findOrFail($owner_id);
+                $token_fcm=$owner->profile->token_fcm;
+                if (!$token_fcm)
+                {
+                    Log::warning("User $owner_id  his apartment requested for reservations but has no FCM token.");
+                    return response()->json(['message' => 'apartment user requested for reservations, but no token found.']);
+                }
 
-        //             $messaging = app('firebase.messaging');
+                    $messaging = app('firebase.messaging');
 
-        //             $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
-        //                 ->withNotification(\Kreait\Firebase\Messaging\Notification::create("Apartment requested for reservations", "Your apartment was requested for reservations."));
+                    $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
+                        ->withNotification(\Kreait\Firebase\Messaging\Notification::create("Apartment requested for reservations", "Your apartment was requested for reservations."));
 
-        //             $response = $messaging->send($message);
-        //     } catch (\Exception $e) {
-        //         return response()->json(['error' => $e->getMessage()], 500);
-        //     }
+                    $response = $messaging->send($message);
+            } catch (\Exception $e) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
 
-        //     try//إرسال إشعار للمستأجر
-        //     {
-        //         $renter_id=$reservation->user_id;
-        //         $renter=User::findOrFail($renter_id);
-        //         $token_fcm=$renter->profile->token_fcm;
-        //         if (!$token_fcm)
-        //         {
-        //             Log::warning("User $renter_id  his reservation pending but has no FCM token.");
-        //             return response()->json(['message' => 'reservation user pending, but no token found.']);
-        //         }
+            try//إرسال إشعار للمستأجر
+            {
+                $renter_id=$reservation->user_id;
+                $renter=User::findOrFail($renter_id);
+                $token_fcm=$renter->profile->token_fcm;
+                if (!$token_fcm)
+                {
+                    Log::warning("User $renter_id  his reservation pending but has no FCM token.");
+                    return response()->json(['message' => 'reservation user pending, but no token found.']);
+                }
 
-        //             $messaging = app('firebase.messaging');
+                    $messaging = app('firebase.messaging');
 
-        //             $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
-        //                 ->withNotification(\Kreait\Firebase\Messaging\Notification::create("You Reservation Pending", "Your reservation was Pending ."));
+                    $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
+                        ->withNotification(\Kreait\Firebase\Messaging\Notification::create("You Reservation Pending", "Your reservation was Pending ."));
 
-        //             $response = $messaging->send($message);
-        //     } catch (\Exception $e) {
-        //         return response()->json(['error' => $e->getMessage()], 500);
-        //     }
+                    $response = $messaging->send($message);
+            } catch (\Exception $e) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
 
         return response()->json([
             'message'=>'Successfully Create Reservation :',
@@ -165,48 +165,48 @@ class ReservationController extends Controller
         } catch (ModelNotFoundException $e) {
             return response()->json(['message' => 'Reservation not found'], 404);
         }
-        // try//إرسال إشعار لمالك الشقة
-        //     {
-        //         $owner_id=$apartment->user_id;
-        //         $owner=User::findOrFail($owner_id);
-        //         $renter_name=Auth::user()->profile->first_name;
-        //         $token_fcm=$owner->profile->token_fcm;
-        //         if (!$token_fcm)
-        //         {
-        //             Log::warning("User $owner_id  his apartment requested for reservations but has no FCM token.");
-        //             return response()->json(['message' => 'apartment user requested for reservations, but no token found.']);
-        //         }
+        try//إرسال إشعار لمالك الشقة
+            {
+                $owner_id=$apartment->user_id;
+                $owner=User::findOrFail($owner_id);
+                $renter_name=Auth::user()->profile->first_name;
+                $token_fcm=$owner->profile->token_fcm;
+                if (!$token_fcm)
+                {
+                    Log::warning("User $owner_id  his apartment requested for reservations but has no FCM token.");
+                    return response()->json(['message' => 'apartment user requested for reservations, but no token found.']);
+                }
 
-        //             $messaging = app('firebase.messaging');
+                    $messaging = app('firebase.messaging');
 
-        //             $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
-        //                 ->withNotification(\Kreait\Firebase\Messaging\Notification::create("Apartment requested for reservations", "$renter_name updated to reserve your apartment."));
+                    $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
+                        ->withNotification(\Kreait\Firebase\Messaging\Notification::create("Apartment requested for reservations", "$renter_name updated to reserve your apartment."));
 
-        //             $response = $messaging->send($message);
-        //     } catch (\Exception $e) {
-        //         return response()->json(['error' => $e->getMessage()], 500);
-        //     }
+                    $response = $messaging->send($message);
+            } catch (\Exception $e) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
 
-        //     try//إرسال إشعار للمستأجر
-        //     {
-        //         $renter_id=$reservation->user_id;
-        //         $renter=User::findOrFail($renter_id);
-        //         $token_fcm=$renter->profile->token_fcm;
-        //         if (!$token_fcm)
-        //         {
-        //             Log::warning("User $renter_id  his reservation pending but has no FCM token.");
-        //             return response()->json(['message' => 'reservation user pending, but no token found.']);
-        //         }
+            try//إرسال إشعار للمستأجر
+            {
+                $renter_id=$reservation->user_id;
+                $renter=User::findOrFail($renter_id);
+                $token_fcm=$renter->profile->token_fcm;
+                if (!$token_fcm)
+                {
+                    Log::warning("User $renter_id  his reservation pending but has no FCM token.");
+                    return response()->json(['message' => 'reservation user pending, but no token found.']);
+                }
 
-        //             $messaging = app('firebase.messaging');
+                    $messaging = app('firebase.messaging');
 
-        //             $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
-        //                 ->withNotification(\Kreait\Firebase\Messaging\Notification::create("You Reservation Pending", "Your reservation was Pending ."));
+                    $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
+                        ->withNotification(\Kreait\Firebase\Messaging\Notification::create("You Reservation Pending", "Your reservation was Pending ."));
 
-        //             $response = $messaging->send($message);
-        //     } catch (\Exception $e) {
-        //         return response()->json(['error' => $e->getMessage()], 500);
-        //     }
+                    $response = $messaging->send($message);
+            } catch (\Exception $e) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
 
         return response()->json([
             'message'=>'Successfully Update Reservation :',
@@ -309,26 +309,26 @@ class ReservationController extends Controller
                 $updated[] = $reservation->id;
             }
 
-            // try//إرسال إشعار للمستأجر
-            // {
-            //     $renter_id=$reservation->user_id;
-            //     $renter=User::findOrFail($renter_id);
-            //     $token_fcm=$renter->profile->token_fcm;
-            //     if (!$token_fcm)
-            //     {
-            //         Log::warning("User $renter_id  his reservation finished but has no FCM token.");
-            //         return response()->json(['message' => 'reservation user finished, but no token found.']);
-            //     }
+            try//إرسال إشعار للمستأجر
+            {
+                $renter_id=$reservation->user_id;
+                $renter=User::findOrFail($renter_id);
+                $token_fcm=$renter->profile->token_fcm;
+                if (!$token_fcm)
+                {
+                    Log::warning("User $renter_id  his reservation finished but has no FCM token.");
+                    return response()->json(['message' => 'reservation user finished, but no token found.']);
+                }
 
-            //         $messaging = app('firebase.messaging');
+                    $messaging = app('firebase.messaging');
 
-            //         $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
-            //             ->withNotification(\Kreait\Firebase\Messaging\Notification::create("You Reservation finished", "Your reservation was finished."));
+                    $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
+                        ->withNotification(\Kreait\Firebase\Messaging\Notification::create("You Reservation finished", "Your reservation was finished."));
 
-            //         $response = $messaging->send($message);
-            // } catch (\Exception $e) {
-            //     return response()->json(['error' => $e->getMessage()], 500);
-            // }
+                    $response = $messaging->send($message);
+            } catch (\Exception $e) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
         }
 
         return response()->json([

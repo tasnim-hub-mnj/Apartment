@@ -18,26 +18,26 @@ class FavoriteController extends Controller
             Apartment::findOrFail($apartmentId);
             Auth::user()->favoritesApartment()->syncWithoutDetaching($apartmentId);
 
-            // try//إرسال إشعار للمستأجر
-            // {
-            //     $renter_id=Auth::id();
-            //     $renter=User::findOrFail($renter_id);
-            //     $token_fcm=$renter->profile->token_fcm;
-            //     if (!$token_fcm)
-            //     {
-            //         Log::warning("User $renter_id  Added a apartment for Favorites but has no FCM token.");
-            //         return response()->json(['message' => 'user Added a apartment for Favorites, but no token found.']);
-            //     }
+            try//إرسال إشعار للمستأجر
+            {
+                $renter_id=Auth::id();
+                $renter=User::findOrFail($renter_id);
+                $token_fcm=$renter->profile->token_fcm;
+                if (!$token_fcm)
+                {
+                    Log::warning("User $renter_id  Added a apartment for Favorites but has no FCM token.");
+                    return response()->json(['message' => 'user Added a apartment for Favorites, but no token found.']);
+                }
 
-            //         $messaging = app('firebase.messaging');
+                    $messaging = app('firebase.messaging');
 
-            //         $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
-            //             ->withNotification(\Kreait\Firebase\Messaging\Notification::create("Added a apartment for Favorites", "Your apartment was added to favorites."));
+                    $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
+                        ->withNotification(\Kreait\Firebase\Messaging\Notification::create("Added a apartment for Favorites", "Your apartment was added to favorites."));
 
-            //         $response = $messaging->send($message);
-            // } catch (\Exception $e) {
-            //     return response()->json(['error' => $e->getMessage()], 500);
-            // }
+                    $response = $messaging->send($message);
+            } catch (\Exception $e) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
 
             return response()->json([
                 'message'=>'Added To Favorite List'
@@ -56,26 +56,26 @@ class FavoriteController extends Controller
             $apartment=Apartment::findOrFail($apartmentId);
             Auth::user()->favoritesApartment()->detach($apartmentId);
 
-            // try//إرسال إشعار للمستأجر
-            // {
-            //     $renter_id=Auth::id();
-            //     $renter=User::findOrFail($renter_id);
-            //     $token_fcm=$renter->profile->token_fcm;
-            //     if (!$token_fcm)
-            //     {
-            //         Log::warning("User $renter_id  Deleted a apartment for Favorites but has no FCM token.");
-            //         return response()->json(['message' => 'user Deleted a apartment for Favorites, but no token found.']);
-            //     }
+            try//إرسال إشعار للمستأجر
+            {
+                $renter_id=Auth::id();
+                $renter=User::findOrFail($renter_id);
+                $token_fcm=$renter->profile->token_fcm;
+                if (!$token_fcm)
+                {
+                    Log::warning("User $renter_id  Deleted a apartment for Favorites but has no FCM token.");
+                    return response()->json(['message' => 'user Deleted a apartment for Favorites, but no token found.']);
+                }
 
-            //         $messaging = app('firebase.messaging');
+                    $messaging = app('firebase.messaging');
 
-            //         $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
-            //             ->withNotification(\Kreait\Firebase\Messaging\Notification::create("Deleted a apartment for Favorites", "Your apartment was deleted from favorites."));
+                    $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
+                        ->withNotification(\Kreait\Firebase\Messaging\Notification::create("Deleted a apartment for Favorites", "Your apartment was deleted from favorites."));
 
-            //         $response = $messaging->send($message);
-            // } catch (\Exception $e) {
-            //     return response()->json(['error' => $e->getMessage()], 500);
-            // }
+                    $response = $messaging->send($message);
+            } catch (\Exception $e) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
 
             return response()->json([
                 'message'=>'Removed From Favorite List'

@@ -145,22 +145,23 @@ class UserController extends Controller
         if($user)
         {
             $user_id=$user->id;
-            // //ارسال اشعار للمستخدم
-            // $token_fcm=$user->profile->token_fcm;
-            // if (!$token_fcm)
-            // {
-            //     Log::warning("User $user_id approved but has no FCM token.");//
-            //     return response()->json(['message' => 'User approved, but no token found.']);
-            // }
+            
+            //ارسال اشعار للمستخدم
+            $token_fcm=$user->profile->token_fcm;
+            if (!$token_fcm)
+            {
+                Log::warning("User $user_id approved but has no FCM token.");//
+                return response()->json(['message' => 'User approved, but no token found.']);
+            }
 
-            // $messaging = app('firebase.messaging');
-            // $name=$user->profile->first_name;
-            // $verfiycode =rand(100000,999999);
+            $messaging = app('firebase.messaging');
+            $name=$user->profile->first_name;
+            $verfiycode =rand(100000,999999);
 
-            // $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
-            //     ->withNotification(\Kreait\Firebase\Messaging\Notification::create("Success Apply\nWelcome $name", "$verfiycode"));
+            $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token',$token_fcm)
+                ->withNotification(\Kreait\Firebase\Messaging\Notification::create("Success Apply\nWelcome $name", "$verfiycode"));
 
-            // $response = $messaging->send($message);
+            $response = $messaging->send($message);
 
             return response()->json([
             'message'=>'this phone is founded. '

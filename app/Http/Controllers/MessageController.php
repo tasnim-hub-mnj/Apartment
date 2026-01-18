@@ -30,12 +30,6 @@ class MessageController extends Controller
             ? $conversation->renter_id
             : $conversation->owner_id;
 
-        NotificationService::send(// إرسال إشعار للطرف الآخر بوجود رسالة جديدة
-            $receiverId,
-            'New Message',
-            'You have received a new message'
-        );
-
         return response()->json([
             'message' => 'Message sent successfully',
             'data'    => $message
@@ -88,5 +82,5 @@ class MessageController extends Controller
     //     ],200);
     // }
     // //____________________________________________________________
-    
+
 }

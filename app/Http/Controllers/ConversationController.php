@@ -21,11 +21,7 @@ class ConversationController extends Controller
         ]);
 
         $renter_name=Auth::user()->name;
-        NotificationService::send(// إرسال إشعار للمؤجر بأن هناك محادثة جديدة
-            $owner_id,
-            'New Conversation',
-            $renter_name.' has started a conversation with you'
-        );
+        
 
         return response()->json([
             'message' => 'Conversation created successfully',
